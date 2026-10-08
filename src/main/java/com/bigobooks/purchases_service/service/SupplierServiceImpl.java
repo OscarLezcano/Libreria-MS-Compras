@@ -1,26 +1,29 @@
 package com.bigobooks.purchases_service.service;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.bigobooks.entities.purchases.Supplier;
 import com.bigobooks.purchases_service.dto.SupplierRequestDto;
 import com.bigobooks.purchases_service.dto.SupplierResponseDto;
 import com.bigobooks.purchases_service.exception.ConflictException;
 import com.bigobooks.purchases_service.exception.NotFoundException;
+import com.bigobooks.purchases_service.mappers.SupplierMapper;
 import com.bigobooks.purchases_service.repository.SupplierRepository;
-
-import lombok.RequiredArgsConstructor;
+import com.bigobooks.service.BaseService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-@Service
-@RequiredArgsConstructor
 @Slf4j
-public class SupplierServiceImpl implements SupplierService {
+@Service
+public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepository> implements SupplierService {
 
-	private final SupplierRepository supplierRepository;
+	private final SupplierMapper supplierMapper;
+
+	public SupplierServiceImpl(SupplierRepository supplierRepository, SupplierMapper supplierMapper) {
+		super(supplierRepository);
+		this.supplierMapper = supplierMapper;
+	}
 
 	@Override
 	@Transactional
@@ -32,9 +35,9 @@ public class SupplierServiceImpl implements SupplierService {
 		supplier.setName(name);
 		supplier.setRuc(normalizeRuc(request.getRuc()));
 
-		Supplier saved = supplierRepository.save(supplier);
+		Supplier saved = save(supplier);
 		log.info("Proveedor id={} creado (nombre={})", saved.getId(), saved.getName());
-		return toResponse(saved);
+		return supplierMapper.toResponse(saved);
 	}
 
 	@Override
@@ -47,21 +50,21 @@ public class SupplierServiceImpl implements SupplierService {
 		supplier.setName(name);
 		supplier.setRuc(normalizeRuc(request.getRuc()));
 
-		Supplier saved = supplierRepository.save(supplier);
+		Supplier saved = save(supplier);
 		log.info("Proveedor id={} actualizado (nombre={})", saved.getId(), saved.getName());
-		return toResponse(saved);
+		return supplierMapper.toResponse(saved);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public SupplierResponseDto getById(Long id) {
-		return toResponse(requireById(id));
+		return supplierMapper.toResponse(requireById(id));
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public Page<SupplierResponseDto> list(Pageable pageable) {
-		Page<SupplierResponseDto> page = supplierRepository.findAll(pageable).map(this::toResponse);
+		Page<SupplierResponseDto> page = getRepository().findAll(pageable).map(supplierMapper::toResponse);
 		log.info("Listado de proveedores: pagina {} con {} resultado(s)", page.getNumber(), page.getTotalElements());
 		return page;
 	}
@@ -71,44 +74,27 @@ public class SupplierServiceImpl implements SupplierService {
 	public void delete(Long id) {
 		Supplier supplier = requireById(id);
 		supplier.setDeleted(true);
-		supplierRepository.save(supplier);
+		save(supplier);
 		log.info("Proveedor id={} eliminado (borrado logico, nombre={})", supplier.getId(), supplier.getName());
 	}
 
 	private Supplier requireById(Long id) {
-		return supplierRepository.findById(id)
-				.orElseThrow(() -> new NotFoundException("No existe el proveedor con id " + id));
-	}
-
-	private void assertNameAvailable(String name, Long excludeId) {
-		boolean taken = excludeId == null
-				? supplierRepository.existsByName(name)
-				: supplierRepository.existsByNameAndIdNot(name, excludeId);
-		if (taken) {
-			throw new ConflictException("Ya existe un proveedor con el nombre " + name);
-		}
+		return findById(id).orElseThrow(() -> new NotFoundException("Proveedor no encontrado con id: " + id));
 	}
 
 	private String normalizeName(String name) {
-		if (name == null || name.isBlank()) {
-			throw new IllegalArgumentException("El nombre del proveedor es obligatorio");
-		}
-		return name.trim();
+		return name != null ? name.trim() : null;
 	}
 
 	private String normalizeRuc(String ruc) {
-		if (ruc == null || ruc.isBlank()) {
-			return null;
-		}
-		return ruc.trim();
+		return ruc != null ? ruc.trim() : null;
 	}
 
-	private SupplierResponseDto toResponse(Supplier supplier) {
-		return SupplierResponseDto.builder()
-				.id(supplier.getId())
-				.name(supplier.getName())
-				.ruc(supplier.getRuc())
-				.createdAt(supplier.getCreatedAt())
-				.build();
+	private void assertNameAvailable(String name, Long currentId) {
+		getRepository().findByNameIgnoreCase(name).ifPresent(existing -> {
+			if (currentId == null || !existing.getId().equals(currentId)) {
+				throw new ConflictException("Ya existe un proveedor con el nombre: " + name);
+			}
+		});
 	}
 }

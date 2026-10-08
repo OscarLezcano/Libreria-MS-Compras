@@ -1,15 +1,15 @@
 package com.bigobooks.purchases_service.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.bigobooks.entities.purchases.Supplier;
+import com.bigobooks.repository.BaseRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
-import com.bigobooks.entities.purchases.Supplier;
+import java.util.Optional;
 
 @Repository
-public interface SupplierRepository extends JpaRepository<Supplier, Long>, JpaSpecificationExecutor<Supplier> {
+public interface SupplierRepository extends BaseRepository<Supplier>, JpaSpecificationExecutor<Supplier> {
+	Optional<Supplier> findByNameIgnoreCase(String name);
 
-	boolean existsByName(String name);
-
-	boolean existsByNameAndIdNot(String name, Long id);
+	Optional<Supplier> findByRuc(String ruc);
 }
