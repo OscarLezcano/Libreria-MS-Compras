@@ -1,0 +1,648 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://localhost:8083
+  description: Generated server url
+tags:
+- name: Compras
+  description: "Registro de compras a proveedores, consulta, cambio de estado y baja\
+    \ logica"
+- name: Proveedores
+  description: "Alta, consulta, actualizacion y baja logica de proveedores"
+paths:
+  /api/v1/suppliers/{id}:
+    get:
+      tags:
+      - Proveedores
+      summary: Obtener proveedor por id
+      operationId: getById
+      parameters:
+      - name: id
+        in: path
+        description: Identificador del proveedor
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "404":
+          description: Proveedor no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupplierResponseDto"
+        "200":
+          description: Proveedor encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupplierResponseDto"
+    put:
+      tags:
+      - Proveedores
+      summary: Actualizar proveedor
+      description: Actualiza nombre y RUC de un proveedor existente
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        description: Identificador del proveedor
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierRequestDto"
+        required: true
+      responses:
+        "409":
+          description: Nombre de proveedor duplicado
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupplierResponseDto"
+        "404":
+          description: Proveedor no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupplierResponseDto"
+        "200":
+          description: Proveedor actualizado
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupplierResponseDto"
+    delete:
+      tags:
+      - Proveedores
+      summary: Eliminar proveedor
+      description: Borrado logico del proveedor
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        description: Identificador del proveedor
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Proveedor eliminado
+        "404":
+          description: Proveedor no encontrado
+  /api/v1/suppliers:
+    get:
+      tags:
+      - Proveedores
+      summary: Listar proveedores
+      description: Listado paginado de proveedores activos (no eliminados)
+      operationId: list
+      parameters:
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: Pagina de proveedores
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageSupplierResponseDto"
+    post:
+      tags:
+      - Proveedores
+      summary: Crear proveedor
+      description: Registra un nuevo proveedor en el sistema
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierRequestDto"
+        required: true
+      responses:
+        "409":
+          description: Nombre de proveedor duplicado
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupplierResponseDto"
+        "201":
+          description: Proveedor creado
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupplierResponseDto"
+        "400":
+          description: Datos invalidos
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupplierResponseDto"
+  /api/v1/purchases:
+    get:
+      tags:
+      - Compras
+      summary: Listar compras
+      description: Listado paginado con filtros opcionales
+      operationId: list_1
+      parameters:
+      - name: status
+        in: query
+        description: Filtrar por estado
+        required: false
+        schema:
+          type: string
+          enum:
+          - PENDING
+          - RECEIVED
+          - CANCELLED
+      - name: warehouseId
+        in: query
+        description: Filtrar por almacen
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: supplierId
+        in: query
+        description: Filtrar por proveedor
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: bookId
+        in: query
+        description: Filtrar compras que incluyan este libro
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: invoiceNumber
+        in: query
+        description: Busqueda parcial por numero de factura
+        required: false
+        schema:
+          type: string
+      - name: createdFrom
+        in: query
+        description: Fecha de creacion desde (ISO)
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: createdTo
+        in: query
+        description: Fecha de creacion hasta (ISO)
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: Pagina de compras
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PagePurchaseResponseDto"
+    post:
+      tags:
+      - Compras
+      summary: Crear compra
+      description: Registra una compra con detalles y calcula el total automaticamente
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseCreateRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Compra creada
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseResponseDto"
+        "404":
+          description: Proveedor no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseResponseDto"
+        "400":
+          description: Datos invalidos
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseResponseDto"
+  /api/v1/purchases/{id}/status:
+    patch:
+      tags:
+      - Compras
+      summary: Actualizar estado de la compra
+      description: "Transiciones: PENDING -> RECEIVED o CANCELLED"
+      operationId: updateStatus
+      parameters:
+      - name: id
+        in: path
+        description: Identificador de la compra
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseStatusUpdateRequestDto"
+        required: true
+      responses:
+        "404":
+          description: Compra no encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseResponseDto"
+        "409":
+          description: Transicion de estado no permitida
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseResponseDto"
+        "200":
+          description: Estado actualizado
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseResponseDto"
+  /api/v1/purchases/{id}:
+    get:
+      tags:
+      - Compras
+      summary: Obtener compra por id
+      operationId: getById_1
+      parameters:
+      - name: id
+        in: path
+        description: Identificador de la compra
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "404":
+          description: Compra no encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseResponseDto"
+        "200":
+          description: Compra encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PurchaseResponseDto"
+    delete:
+      tags:
+      - Compras
+      summary: Eliminar compra
+      description: Borrado logico de la compra
+      operationId: delete_1
+      parameters:
+      - name: id
+        in: path
+        description: Identificador de la compra
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "404":
+          description: Compra no encontrada
+        "204":
+          description: Compra eliminada
+components:
+  schemas:
+    SupplierRequestDto:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          maxLength: 255
+          minLength: 0
+          type: string
+          description: Nombre comercial del proveedor
+          example: Distribuidora Norte S.A.
+        ruc:
+          maxLength: 20
+          minLength: 0
+          type: string
+          description: RUC o identificador fiscal
+          example: "20123456789"
+      description: Datos para crear o actualizar un proveedor
+    SupplierResponseDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identificador del proveedor
+          format: int64
+          example: 1
+        name:
+          type: string
+          description: Nombre comercial del proveedor
+          example: Distribuidora Norte S.A.
+        ruc:
+          type: string
+          description: RUC o identificador fiscal
+          example: "20123456789"
+        createdAt:
+          type: string
+          description: Fecha de alta del registro
+          format: date-time
+      description: Proveedor registrado en el sistema
+    PurchaseCreateRequestDto:
+      required:
+      - details
+      - invoiceNumber
+      - supplierId
+      - warehouseId
+      type: object
+      properties:
+        warehouseId:
+          type: integer
+          description: Identificador del almacen destino
+          format: int64
+          example: 1
+        supplierId:
+          type: integer
+          description: Identificador del proveedor
+          format: int64
+          example: 3
+        invoiceNumber:
+          type: string
+          description: Numero de factura del proveedor
+          example: 001-001-00001234
+        details:
+          type: array
+          description: Items de la compra
+          items:
+            $ref: "#/components/schemas/PurchaseDetailRequestDto"
+      description: Datos para registrar una nueva compra a proveedor
+    PurchaseDetailRequestDto:
+      required:
+      - bookId
+      - bookName
+      - quantity
+      - unitCost
+      type: object
+      properties:
+        bookId:
+          type: integer
+          description: Identificador del libro
+          format: int64
+          example: 42
+        bookName:
+          type: string
+          description: Nombre del libro al momento de la compra
+          example: Clean Code
+        quantity:
+          minimum: 1
+          type: integer
+          description: Cantidad comprada
+          format: int32
+          example: 10
+        unitCost:
+          minimum: 1
+          type: integer
+          description: Costo unitario en la moneda del sistema
+          format: int64
+          example: 25000
+      description: Linea de detalle al registrar una compra
+    PurchaseDetailResponseDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identificador del detalle
+          format: int64
+          example: 100
+        bookId:
+          type: integer
+          description: Identificador del libro
+          format: int64
+          example: 42
+        bookName:
+          type: string
+          description: Nombre del libro
+          example: Clean Code
+        quantity:
+          type: integer
+          description: Cantidad
+          format: int32
+          example: 10
+        unitCost:
+          type: integer
+          description: Costo unitario
+          format: int64
+          example: 25000
+        lineTotal:
+          type: integer
+          description: Subtotal de la linea (quantity * unitCost)
+          format: int64
+          example: 250000
+      description: Linea de detalle de una compra
+    PurchaseResponseDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identificador de la compra
+          format: int64
+          example: 15
+        warehouseId:
+          type: integer
+          description: Almacen destino
+          format: int64
+          example: 1
+        supplierId:
+          type: integer
+          description: Proveedor
+          format: int64
+          example: 3
+        supplierName:
+          type: string
+          description: Nombre del proveedor
+          example: Distribuidora Norte S.A.
+        status:
+          type: string
+          description: Estado de la compra
+          enum:
+          - PENDING
+          - RECEIVED
+          - CANCELLED
+        totalPrice:
+          type: integer
+          description: Total calculado de la compra
+          format: int32
+          example: 250000
+        invoiceNumber:
+          type: string
+          description: Numero de factura
+          example: 001-001-00001234
+        details:
+          type: array
+          description: Lineas de detalle
+          items:
+            $ref: "#/components/schemas/PurchaseDetailResponseDto"
+        createdAt:
+          type: string
+          description: Fecha de registro
+          format: date-time
+      description: Compra registrada con sus detalles
+    PurchaseStatusUpdateRequestDto:
+      required:
+      - status
+      type: object
+      properties:
+        status:
+          type: string
+          description: "Estado destino (PENDING, RECEIVED, CANCELLED)"
+          example: RECEIVED
+          enum:
+          - PENDING
+          - RECEIVED
+          - CANCELLED
+      description: Nuevo estado de la compra
+    Pageable:
+      type: object
+      properties:
+        page:
+          minimum: 0
+          type: integer
+          format: int32
+        size:
+          minimum: 1
+          type: integer
+          format: int32
+        sort:
+          type: array
+          items:
+            type: string
+    PageSupplierResponseDto:
+      type: object
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupplierResponseDto"
+        number:
+          type: integer
+          format: int32
+        sort:
+          type: array
+          items:
+            $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
+        numberOfElements:
+          type: integer
+          format: int32
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        empty:
+          type: boolean
+    PageableObject:
+      type: object
+      properties:
+        offset:
+          type: integer
+          format: int64
+        sort:
+          type: array
+          items:
+            $ref: "#/components/schemas/SortObject"
+        pageNumber:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        paged:
+          type: boolean
+        unpaged:
+          type: boolean
+    SortObject:
+      type: object
+      properties:
+        direction:
+          type: string
+        nullHandling:
+          type: string
+        ascending:
+          type: boolean
+        property:
+          type: string
+        ignoreCase:
+          type: boolean
+    PagePurchaseResponseDto:
+      type: object
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchaseResponseDto"
+        number:
+          type: integer
+          format: int32
+        sort:
+          type: array
+          items:
+            $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
+        numberOfElements:
+          type: integer
+          format: int32
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        empty:
+          type: boolean
