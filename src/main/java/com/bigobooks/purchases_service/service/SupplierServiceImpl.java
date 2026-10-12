@@ -1,8 +1,9 @@
 package com.bigobooks.purchases_service.service;
 
+import com.bigobooks.dto.SupplierDto;
+import com.bigobooks.dto.SupplierCreateRequest;
+import com.bigobooks.dto.SupplierUpdateRequest;
 import com.bigobooks.entities.purchases.Supplier;
-import com.bigobooks.purchases_service.dto.SupplierRequestDto;
-import com.bigobooks.purchases_service.dto.SupplierResponseDto;
 import com.bigobooks.purchases_service.exception.ConflictException;
 import com.bigobooks.purchases_service.exception.NotFoundException;
 import com.bigobooks.purchases_service.mappers.SupplierMapper;
@@ -27,7 +28,7 @@ public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepositor
 
 	@Override
 	@Transactional
-	public SupplierResponseDto create(SupplierRequestDto request) {
+	public SupplierDto create(SupplierCreateRequest request) {
 		String name = normalizeName(request.getName());
 		assertNameAvailable(name, null);
 
@@ -42,7 +43,7 @@ public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepositor
 
 	@Override
 	@Transactional
-	public SupplierResponseDto update(Long id, SupplierRequestDto request) {
+	public SupplierDto update(Long id, SupplierUpdateRequest request) {
 		Supplier supplier = requireById(id);
 		String name = normalizeName(request.getName());
 		assertNameAvailable(name, id);
@@ -57,14 +58,14 @@ public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepositor
 
 	@Override
 	@Transactional(readOnly = true)
-	public SupplierResponseDto getById(Long id) {
+	public SupplierDto getById(Long id) {
 		return supplierMapper.toResponse(requireById(id));
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public Page<SupplierResponseDto> list(Pageable pageable) {
-		Page<SupplierResponseDto> page = getRepository().findAll(pageable).map(supplierMapper::toResponse);
+	public Page<SupplierDto> list(Pageable pageable) {
+		Page<SupplierDto> page = getRepository().findAll(pageable).map(supplierMapper::toResponse);
 		log.info("Listado de proveedores: pagina {} con {} resultado(s)", page.getNumber(), page.getTotalElements());
 		return page;
 	}

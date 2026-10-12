@@ -5,7 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {
+		"com.bigobooks.purchases_service",
+		"com.bigobooks.util"
+})
 @EntityScan(basePackages = { "com.bigobooks.entities" })
 @EnableJpaRepositories(basePackages = { "com.bigobooks.purchases_service.repository" })
 public class PurchasesServiceApplication {
