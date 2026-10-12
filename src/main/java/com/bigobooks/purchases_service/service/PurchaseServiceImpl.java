@@ -1,5 +1,6 @@
 package com.bigobooks.purchases_service.service;
 
+import com.bigobooks.dto.BookResponse;
 import com.bigobooks.dto.PurchaseCreateRequest;
 import com.bigobooks.dto.PurchaseDto;
 import com.bigobooks.dto.PurchaseItemCreate;
@@ -8,6 +9,7 @@ import com.bigobooks.entities.purchases.Purchase;
 import com.bigobooks.entities.purchases.PurchaseDetail;
 import com.bigobooks.entities.purchases.PurchaseStatus;
 import com.bigobooks.entities.purchases.Supplier;
+import com.bigobooks.purchases_service.client.BookClient;
 import com.bigobooks.purchases_service.exception.ConflictException;
 import com.bigobooks.purchases_service.exception.NotFoundException;
 import com.bigobooks.purchases_service.mappers.PurchaseMapper;
@@ -15,6 +17,7 @@ import com.bigobooks.purchases_service.repository.PurchaseDetailRepository;
 import com.bigobooks.purchases_service.repository.PurchaseRepository;
 import com.bigobooks.purchases_service.repository.SupplierRepository;
 import com.bigobooks.purchases_service.specifications.PurchaseSpecifications;
+import com.bigobooks.purchases_service.client.BookClient;
 import com.bigobooks.service.BaseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,17 +38,20 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
     private final SupplierRepository supplierRepository;
     private final StockService stockService;
     private final PurchaseMapper purchaseMapper;
+    private final BookClient bookClient;
 
     public PurchaseServiceImpl(PurchaseRepository purchaseRepository,
             PurchaseDetailRepository purchaseDetailRepository,
             SupplierRepository supplierRepository,
             StockService stockService,
-            PurchaseMapper purchaseMapper) {
+            PurchaseMapper purchaseMapper,
+            BookClient bookClient) {
         super(purchaseRepository);
         this.purchaseDetailRepository = purchaseDetailRepository;
         this.supplierRepository = supplierRepository;
         this.stockService = stockService;
         this.purchaseMapper = purchaseMapper;
+        this.bookClient = bookClient;
     }
 
     @Override
@@ -147,6 +153,16 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
         detail.setBookId(item.getBookId());
         detail.setQuantity(item.getQuantity());
         detail.setUnitCost(item.getUnitCost());
+        try {
+            BookResponse response = bookClient.getBookById(item.getBookId());
+            if (response != null && response.getData() != null) {
+                detail.setBookName(response.getData().getTitle());
+            }
+        } catch (Exception e) {
+            // Al fallar la conexión con stock-service, asigna este texto de respaldo:
+            log.warn("No se pudo conectar a stock-service, asignando nombre simulado: {}", e.getMessage());
+            detail.setBookName("Libro de Prueba (ID " + item.getBookId() + ")");
+        }
 
         PurchaseDetail savedDetail = purchaseDetailRepository.save(detail);
         purchase.getPurchaseDetails().add(savedDetail);

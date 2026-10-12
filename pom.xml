@@ -34,6 +34,10 @@
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
+		<dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
 		<!-- JAR local compartido (Entrega #1) -->
 		<dependency>
 			<groupId>com.bigobooks</groupId>
