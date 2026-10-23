@@ -12,6 +12,8 @@ import com.bigobooks.service.BaseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +45,9 @@ public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepositor
 
 	@Override
 	@Transactional
+	@CacheEvict(value = "suppliers", key = "#id")
 	public SupplierDto update(Long id, SupplierUpdateRequest request) {
+		log.info("[CACHE EVICT] Desalojando proveedor id={} de Redis por actualización", id);
 		Supplier supplier = requireById(id);
 		String name = normalizeName(request.getName());
 		assertNameAvailable(name, id);
@@ -58,13 +62,16 @@ public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepositor
 
 	@Override
 	@Transactional(readOnly = true)
+	@Cacheable(value = "suppliers", key = "#id")
 	public SupplierDto getById(Long id) {
+		log.info("[CACHE MISS / DB HIT] Buscando proveedor id={} en base de datos", id);
 		return supplierMapper.toResponse(requireById(id));
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public Page<SupplierDto> list(Pageable pageable) {
+		// Sin @Cacheable para cumplir la restricción de no almacenar paginaciones completas
 		Page<SupplierDto> page = getRepository().findAll(pageable).map(supplierMapper::toResponse);
 		log.info("Listado de proveedores: pagina {} con {} resultado(s)", page.getNumber(), page.getTotalElements());
 		return page;
@@ -72,7 +79,9 @@ public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepositor
 
 	@Override
 	@Transactional
+	@CacheEvict(value = "suppliers", key = "#id")
 	public void delete(Long id) {
+		log.info("[CACHE EVICT] Desalojando proveedor id={} de Redis por borrado", id);
 		Supplier supplier = requireById(id);
 		supplier.setDeleted(true);
 		save(supplier);

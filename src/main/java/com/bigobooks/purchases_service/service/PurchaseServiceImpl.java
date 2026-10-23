@@ -19,6 +19,8 @@ import com.bigobooks.purchases_service.repository.SupplierRepository;
 import com.bigobooks.purchases_service.specifications.PurchaseSpecifications;
 import com.bigobooks.service.BaseService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -86,7 +88,9 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "purchases", key = "#id")
     public PurchaseDto getById(Long id) {
+        log.info("[CACHE MISS / DB HIT] Buscando compra con ID: {} en base de datos", id);
         Purchase purchase = requireById(id);
         log.info("Consulta de compra id={} (estado={})", purchase.getId(), purchase.getStatus());
         return purchaseMapper.toResponse(purchase);
@@ -96,6 +100,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
     @Transactional(readOnly = true)
     public Page<PurchaseDto> list(PurchaseStatus status, Long warehouseId, Long supplierId, Long bookId,
             String invoiceNumber, LocalDateTime createdFrom, LocalDateTime createdTo, Pageable pageable) {
+        // Sin @Cacheable: consultas masivas y paginadas van directo a la base de datos
         Specification<Purchase> spec = PurchaseSpecifications.build(status, warehouseId, supplierId, bookId,
                 invoiceNumber, createdFrom, createdTo);
         Page<PurchaseDto> page = getRepository().findAll(spec, pageable).map(purchaseMapper::toResponse);
@@ -105,7 +110,9 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional
+    @CacheEvict(value = "purchases", key = "#id")
     public PurchaseDto updateStatus(Long id, PurchaseStatusChange request) {
+        log.info("[CACHE EVICT] Desalojando compra ID: {} de Redis por cambio de estado", id);
         if (request == null || request.getStatus() == null) {
             throw new IllegalArgumentException("status es obligatorio");
         }
@@ -134,7 +141,9 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional
+    @CacheEvict(value = "purchases", key = "#id")
     public void delete(Long id) {
+        log.info("[CACHE EVICT] Desalojando compra ID: {} de Redis por borrado", id);
         Purchase purchase = requireById(id);
         purchase.setDeleted(true);
         save(purchase);
