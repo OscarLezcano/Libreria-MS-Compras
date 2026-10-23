@@ -7,15 +7,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.bigobooks.dto.ErrorDto;
-import com.bigobooks.purchases_service.exception.ConflictException;
-import com.bigobooks.purchases_service.exception.NotFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j

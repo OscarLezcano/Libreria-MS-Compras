@@ -10,6 +10,7 @@ import com.bigobooks.entities.purchases.PurchaseDetail;
 import com.bigobooks.entities.stock.Stock;
 import com.bigobooks.purchases_service.repository.StockRepository;
 import com.bigobooks.entities.stock.Warehouse;
+import com.bigobooks.entities.book.Book;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -53,7 +54,9 @@ public class StockService {
         return stockRepository.findByBookIdAndWarehouse_Id(bookId, warehouseId)
                 .orElseGet(() -> {
                     Stock newStock = new Stock();
-                    newStock.setBookId(bookId);
+                    // Obtiene la referencia proxy de Book
+                    Book bookRef = entityManager.getReference(Book.class, bookId);
+                    newStock.setBook(bookRef);
                     newStock.setQuantity(0);
                     // Obtiene una referencia proxy de Warehouse con el ID sin hacer SELECT extra
                     Warehouse warehouseRef = entityManager.getReference(Warehouse.class, warehouseId);

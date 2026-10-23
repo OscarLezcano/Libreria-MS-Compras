@@ -17,7 +17,6 @@ import com.bigobooks.purchases_service.repository.PurchaseDetailRepository;
 import com.bigobooks.purchases_service.repository.PurchaseRepository;
 import com.bigobooks.purchases_service.repository.SupplierRepository;
 import com.bigobooks.purchases_service.specifications.PurchaseSpecifications;
-import com.bigobooks.purchases_service.client.BookClient;
 import com.bigobooks.service.BaseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

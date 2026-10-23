@@ -30,6 +30,8 @@ public final class PurchaseSpecifications {
 		return (Root<Purchase> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
 			List<Predicate> predicates = new ArrayList<>();
 
+			predicates.add(cb.isFalse(root.get("isDeleted")));
+
 			if (status != null) {
 				predicates.add(cb.equal(root.get("status"), status));
 			}

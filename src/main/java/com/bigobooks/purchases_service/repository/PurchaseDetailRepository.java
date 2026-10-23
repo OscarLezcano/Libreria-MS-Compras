@@ -5,13 +5,9 @@ import com.bigobooks.entities.purchases.PurchaseDetail;
 import com.bigobooks.repository.BaseRepository;
 
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
-@Repository
 public interface PurchaseDetailRepository extends BaseRepository<PurchaseDetail> {
-@Override
+    @Override
     @Query(value = "SELECT * FROM purchase_detail", nativeQuery = true)
     List<PurchaseDetail> findAllIncludingDeleted();
 
