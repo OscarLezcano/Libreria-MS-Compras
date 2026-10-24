@@ -5,34 +5,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-
 @Configuration
-@EnableCaching
+@EnableCaching // Habilita el soporte de anotaciones @Cacheable y @CacheEvict en Spring
 public class RedisConfig {
 
-        @Value("${app.cache.ttl.purchases-minutes:15}")
-        private long purchasesTtl;
-
         @Bean
-        public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-                // Soporte para LocalDateTime y tipado de objetos en Redis
+        public RedisCacheConfiguration cacheConfiguration() {
+                // 1. Configuramos Jackson para soportar fechas Java 8 (LocalDateTime) y
+                // polimorfismo
                 ObjectMapper objectMapper = new ObjectMapper();
                 objectMapper.registerModule(new JavaTimeModule());
                 objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+                // Guarda el tipo de clase en el JSON para poder reconstruir los DTOs
+                // correctamente al leer de Redis
                 objectMapper.activateDefaultTyping(
                                 LaissezFaireSubTypeValidator.instance,
                                 ObjectMapper.DefaultTyping.NON_FINAL,
@@ -40,28 +35,39 @@ public class RedisConfig {
 
                 GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 
-                // 1. Configuración Base: Persistente (sin TTL predeterminado)
-                RedisCacheConfiguration baseConfig = RedisCacheConfiguration.defaultCacheConfig()
+                // 2. Construcción de la configuración por defecto
+                return RedisCacheConfiguration.defaultCacheConfig()
+                                // Evita almacenar llaves con valor nulo en Redis si la BD no encuentra el
+                                // registro
+                                .disableCachingNullValues()
+                                // Serializa las claves como texto legible (String)
                                 .serializeKeysWith(RedisSerializationContext.SerializationPair
                                                 .fromSerializer(new StringRedisSerializer()))
+                                // Serializa los valores como JSON estructurado
                                 .serializeValuesWith(
-                                                RedisSerializationContext.SerializationPair.fromSerializer(serializer))
-                                .disableCachingNullValues();
+                                                RedisSerializationContext.SerializationPair.fromSerializer(serializer));
+        }
 
-                // 2. Políticas de Retención segmentadas por Dominio
-                Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+        /**
+         * Personaliza el RedisCacheManager que Spring Boot crea automáticamente.
+         * Recorre el mapa de TTLs definido en application.properties y aplica
+         * el tiempo de vida correspondiente a cada caché sin codificar nombres a mano
+         * en Java.
+         */
+        @Bean
+        public RedisCacheManagerBuilderCustomizer redisCacheManagerBuilderCustomizer(
+                        CacheProperties cp,
+                        RedisCacheConfiguration defaultConfig) {
 
-                // DOMINIO PROVEEDORES: Persistente sin expiración automática (solo se invalida
-                // con update/delete)
-                cacheConfigurations.put("suppliers", baseConfig.entryTtl(Duration.ZERO));
-
-                // DOMINIO COMPRAS: Temporal con TTL limitado (expira automáticamente tras los
-                // minutos configurados)
-                cacheConfigurations.put("purchases", baseConfig.entryTtl(Duration.ofMinutes(purchasesTtl)));
-
-                return RedisCacheManager.builder(connectionFactory)
-                                .cacheDefaults(baseConfig)
-                                .withInitialCacheConfigurations(cacheConfigurations)
-                                .build();
+                return builder -> {
+                        // Verificamos que existan propiedades configuradas para evitar
+                        // NullPointerException
+                        if (cp.getTtl() != null) {
+                                // Itera dinámicamente: cacheName = "purchases", duration = 15m
+                                // (Duration.ofMinutes(15))
+                                cp.getTtl().forEach((cacheName, duration) -> builder.withCacheConfiguration(cacheName,
+                                                defaultConfig.entryTtl(duration)));
+                        }
+                };
         }
 }

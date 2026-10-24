@@ -88,7 +88,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "purchases", key = "#id")
+    @Cacheable(value = "purchases", key = "'purchase_' + #id")
     public PurchaseDto getById(Long id) {
         log.info("[CACHE MISS / DB HIT] Buscando compra con ID: {} en base de datos", id);
         Purchase purchase = requireById(id);
@@ -110,7 +110,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional
-    @CacheEvict(value = "purchases", key = "#id")
+    @CacheEvict(value = "purchases", key = "'purchase_' + #id")
     public PurchaseDto updateStatus(Long id, PurchaseStatusChange request) {
         log.info("[CACHE EVICT] Desalojando compra ID: {} de Redis por cambio de estado", id);
         if (request == null || request.getStatus() == null) {
@@ -141,7 +141,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional
-    @CacheEvict(value = "purchases", key = "#id")
+    @CacheEvict(value = "purchases", key = "'purchase_' + #id")
     public void delete(Long id) {
         log.info("[CACHE EVICT] Desalojando compra ID: {} de Redis por borrado", id);
         Purchase purchase = requireById(id);
