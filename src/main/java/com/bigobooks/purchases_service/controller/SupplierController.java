@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,6 +48,8 @@ public class SupplierController {
 			@ApiResponse(responseCode = "400", description = "Datos invalidos"),
 			@ApiResponse(responseCode = "409", description = "Nombre de proveedor duplicado")
 	})
+
+	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping
 	public ResponseEntity<Envelope> create(@Valid @RequestBody SupplierCreateRequest request) {
 		SupplierDto created = supplierService.create(request);
@@ -59,6 +62,8 @@ public class SupplierController {
 			@ApiResponse(responseCode = "404", description = "Proveedor no encontrado"),
 			@ApiResponse(responseCode = "409", description = "Nombre de proveedor duplicado")
 	})
+
+	@PreAuthorize("hasRole('ADMIN')")
 	@PutMapping("/{id}")
 	public ResponseEntity<Envelope> update(
 			@Parameter(description = "Identificador del proveedor") @PathVariable Long id,
@@ -71,6 +76,7 @@ public class SupplierController {
 			@ApiResponse(responseCode = "200", description = "Proveedor encontrado", content = @Content(schema = @Schema(implementation = Envelope.class))),
 			@ApiResponse(responseCode = "404", description = "Proveedor no encontrado")
 	})
+	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
 	@GetMapping("/{id}")
 	public ResponseEntity<Envelope> getById(
 			@Parameter(description = "Identificador del proveedor") @PathVariable Long id) {
@@ -79,6 +85,7 @@ public class SupplierController {
 
 	@Operation(summary = "Listar proveedores", description = "Listado paginado de proveedores activos (no eliminados)")
 	@ApiResponse(responseCode = "200", description = "Pagina de proveedores")
+	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
 	@GetMapping
 	public ResponseEntity<Envelope> list(
 			@RequestParam(defaultValue = "0") int page,
@@ -95,6 +102,7 @@ public class SupplierController {
 			@ApiResponse(responseCode = "204", description = "Proveedor eliminado"),
 			@ApiResponse(responseCode = "404", description = "Proveedor no encontrado")
 	})
+	@PreAuthorize("hasRole('ADMIN')")
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> delete(
 			@Parameter(description = "Identificador del proveedor") @PathVariable Long id) {

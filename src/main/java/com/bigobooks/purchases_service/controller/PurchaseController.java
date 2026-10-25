@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,6 +52,8 @@ public class PurchaseController {
 			@ApiResponse(responseCode = "400", description = "Datos invalidos"),
 			@ApiResponse(responseCode = "404", description = "Proveedor no encontrado")
 	})
+	// Crear compra: reservado para ADMIN o VENDEDOR
+	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
 	@PostMapping
 	public ResponseEntity<Envelope> create(@Valid @RequestBody PurchaseCreateRequest request) {
 		PurchaseDto created = purchaseService.create(request);
@@ -62,14 +65,20 @@ public class PurchaseController {
 			@ApiResponse(responseCode = "200", description = "Compra encontrada", content = @Content(schema = @Schema(implementation = Envelope.class))),
 			@ApiResponse(responseCode = "404", description = "Compra no encontrada")
 	})
+
+	// Consultar por ID: ADMIN o VENDEDOR
+	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
 	@GetMapping("/{id}")
 	public ResponseEntity<Envelope> getById(
 			@Parameter(description = "Identificador de la compra") @PathVariable Long id) {
 		return ResponseEntity.ok(new Envelope().data(purchaseService.getById(id)));
 	}
 
+
 	@Operation(summary = "Listar compras", description = "Listado paginado con filtros opcionales")
 	@ApiResponse(responseCode = "200", description = "Pagina de compras")
+	// Listado paginado: ADMIN o VENDEDOR
+	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
 	@GetMapping
 	public ResponseEntity<Envelope> list(
 			@Parameter(description = "Filtrar por estado") @RequestParam(required = false) PurchaseStatus status,
@@ -96,6 +105,9 @@ public class PurchaseController {
 			@ApiResponse(responseCode = "404", description = "Compra no encontrada"),
 			@ApiResponse(responseCode = "409", description = "Transicion de estado no permitida")
 	})
+
+	// Cambiar estado: solo ADMIN
+	@PreAuthorize("hasRole('ADMIN')")
 	@PatchMapping("/{id}/status")
 	public ResponseEntity<Envelope> updateStatus(
 			@Parameter(description = "Identificador de la compra") @PathVariable Long id,
@@ -108,6 +120,9 @@ public class PurchaseController {
 			@ApiResponse(responseCode = "204", description = "Compra eliminada"),
 			@ApiResponse(responseCode = "404", description = "Compra no encontrada")
 	})
+
+	// Eliminar compra: solo ADMIN
+	@PreAuthorize("hasRole('ADMIN')")
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> delete(
 			@Parameter(description = "Identificador de la compra") @PathVariable Long id) {
