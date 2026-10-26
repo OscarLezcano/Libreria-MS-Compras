@@ -1,0 +1,12 @@
+# cSpell:disable
+db.url=
+db.username=
+db.password=
+
+# Redis compartido (usar rediss:// para TLS en produccion)
+redis.url=
+redis.ssl.enabled=true
+
+# Seguridad JWT (debe coincidir con Auth)
+jwt.secret=
+jwt.expiration-minutes=120

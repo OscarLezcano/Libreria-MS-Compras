@@ -1,23 +1,15 @@
 package com.bigobooks.purchases_service.service;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.bigobooks.dto.BookResponse;
+import com.bigobooks.dto.PurchaseCreateRequest;
+import com.bigobooks.dto.PurchaseDto;
+import com.bigobooks.dto.PurchaseItemCreate;
+import com.bigobooks.dto.PurchaseStatusChange;
 import com.bigobooks.entities.purchases.Purchase;
 import com.bigobooks.entities.purchases.PurchaseDetail;
 import com.bigobooks.entities.purchases.PurchaseStatus;
 import com.bigobooks.entities.purchases.Supplier;
-import com.bigobooks.purchases_service.dto.PurchaseCreateRequestDto;
-import com.bigobooks.purchases_service.dto.PurchaseDetailRequestDto;
-import com.bigobooks.purchases_service.dto.PurchaseResponseDto;
-import com.bigobooks.purchases_service.dto.PurchaseStatusUpdateRequestDto;
+import com.bigobooks.purchases_service.client.BookClient;
 import com.bigobooks.purchases_service.exception.ConflictException;
 import com.bigobooks.purchases_service.exception.NotFoundException;
 import com.bigobooks.purchases_service.mappers.PurchaseMapper;
@@ -26,8 +18,18 @@ import com.bigobooks.purchases_service.repository.PurchaseRepository;
 import com.bigobooks.purchases_service.repository.SupplierRepository;
 import com.bigobooks.purchases_service.specifications.PurchaseSpecifications;
 import com.bigobooks.service.BaseService;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -37,35 +39,42 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
     private final SupplierRepository supplierRepository;
     private final StockService stockService;
     private final PurchaseMapper purchaseMapper;
+    private final BookClient bookClient;
 
     public PurchaseServiceImpl(PurchaseRepository purchaseRepository,
-                               PurchaseDetailRepository purchaseDetailRepository,
-                               SupplierRepository supplierRepository,
-                               StockService stockService,
-                               PurchaseMapper purchaseMapper) {
+            PurchaseDetailRepository purchaseDetailRepository,
+            SupplierRepository supplierRepository,
+            StockService stockService,
+            PurchaseMapper purchaseMapper,
+            BookClient bookClient) {
         super(purchaseRepository);
         this.purchaseDetailRepository = purchaseDetailRepository;
         this.supplierRepository = supplierRepository;
         this.stockService = stockService;
         this.purchaseMapper = purchaseMapper;
+        this.bookClient = bookClient;
     }
 
     @Override
     @Transactional
-    public PurchaseResponseDto create(PurchaseCreateRequestDto request) {
+    public PurchaseDto create(PurchaseCreateRequest request) {
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> new NotFoundException("No existe el proveedor con id " + request.getSupplierId()));
 
         Purchase purchase = new Purchase();
-        purchase.setWarehouseId(request.getWarehouseId());
+        if (request.getWarehouseId() != null) {
+            purchase.setWarehouseId(request.getWarehouseId());
+        }
         purchase.setSupplier(supplier);
         purchase.setStatus(PurchaseStatus.PENDING);
-        purchase.setInvoiceNumber(request.getInvoiceNumber().trim());
+        if (request.getInvoiceNumber() != null) {
+            purchase.setInvoiceNumber(request.getInvoiceNumber().trim());
+        }
         purchase.setPurchaseDetails(new ArrayList<>());
 
         Purchase saved = save(purchase);
 
-        for (PurchaseDetailRequestDto item : request.getDetails()) {
+        for (PurchaseItemCreate item : request.getItems()) {
             addDetail(saved, item);
         }
 
@@ -79,7 +88,9 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional(readOnly = true)
-    public PurchaseResponseDto getById(Long id) {
+    @Cacheable(value = "purchases", key = "'purchase_' + #id")
+    public PurchaseDto getById(Long id) {
+        log.info("[CACHE MISS / DB HIT] Buscando compra con ID: {} en base de datos", id);
         Purchase purchase = requireById(id);
         log.info("Consulta de compra id={} (estado={})", purchase.getId(), purchase.getStatus());
         return purchaseMapper.toResponse(purchase);
@@ -87,24 +98,29 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PurchaseResponseDto> list(PurchaseStatus status, Long warehouseId, Long supplierId, Long bookId,
+    public Page<PurchaseDto> list(PurchaseStatus status, Long warehouseId, Long supplierId, Long bookId,
             String invoiceNumber, LocalDateTime createdFrom, LocalDateTime createdTo, Pageable pageable) {
+        // Sin @Cacheable: consultas masivas y paginadas van directo a la base de datos
         Specification<Purchase> spec = PurchaseSpecifications.build(status, warehouseId, supplierId, bookId,
                 invoiceNumber, createdFrom, createdTo);
-        Page<PurchaseResponseDto> page = getRepository().findAll(spec, pageable).map(purchaseMapper::toResponse);
+        Page<PurchaseDto> page = getRepository().findAll(spec, pageable).map(purchaseMapper::toResponse);
         log.info("Listado de compras: pagina {} con {} resultado(s)", page.getNumber(), page.getTotalElements());
         return page;
     }
 
     @Override
     @Transactional
-    public PurchaseResponseDto updateStatus(Long id, PurchaseStatusUpdateRequestDto request) {
+    @CacheEvict(value = "purchases", key = "'purchase_' + #id")
+    public PurchaseDto updateStatus(Long id, PurchaseStatusChange request) {
+        log.info("[CACHE EVICT] Desalojando compra ID: {} de Redis por cambio de estado", id);
         if (request == null || request.getStatus() == null) {
             throw new IllegalArgumentException("status es obligatorio");
         }
         Purchase purchase = requireById(id);
         PurchaseStatus current = purchase.getStatus();
-        PurchaseStatus newStatus = request.getStatus();
+
+        // Conversión segura de OpenAPI enum al entity enum
+        PurchaseStatus newStatus = PurchaseStatus.valueOf(request.getStatus().name());
 
         if (current == newStatus) {
             throw new ConflictException("La compra ya esta en el estado " + current);
@@ -125,7 +141,9 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional
+    @CacheEvict(value = "purchases", key = "'purchase_' + #id")
     public void delete(Long id) {
+        log.info("[CACHE EVICT] Desalojando compra ID: {} de Redis por borrado", id);
         Purchase purchase = requireById(id);
         purchase.setDeleted(true);
         save(purchase);
@@ -137,13 +155,22 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
                 .orElseThrow(() -> new NotFoundException("No existe la compra con id " + id));
     }
 
-    private void addDetail(Purchase purchase, PurchaseDetailRequestDto item) {
+    private void addDetail(Purchase purchase, PurchaseItemCreate item) {
         PurchaseDetail detail = new PurchaseDetail();
         detail.setPurchase(purchase);
         detail.setBookId(item.getBookId());
-        detail.setBookName(item.getBookName().trim());
         detail.setQuantity(item.getQuantity());
         detail.setUnitCost(item.getUnitCost());
+        try {
+            BookResponse response = bookClient.getBookById(item.getBookId());
+            if (response != null && response.getData() != null) {
+                detail.setBookName(response.getData().getTitle());
+            }
+        } catch (Exception e) {
+            // Al fallar la conexión con stock-service, asigna este texto de respaldo:
+            log.warn("No se pudo conectar a stock-service, asignando nombre simulado: {}", e.getMessage());
+            detail.setBookName("Libro de Prueba (ID " + item.getBookId() + ")");
+        }
 
         PurchaseDetail savedDetail = purchaseDetailRepository.save(detail);
         purchase.getPurchaseDetails().add(savedDetail);
