@@ -1,6 +1,6 @@
 package com.bigobooks.purchases_service.mappers;
 
-import com.bigobooks.purchases_service.dto.SupplierResponseDto;
+import com.bigobooks.dto.SupplierDto;
 import com.bigobooks.entities.purchases.Supplier;
 import org.mapstruct.Mapper;
 
@@ -9,7 +9,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface SupplierMapper {
 
-    SupplierResponseDto toResponse(Supplier supplier);
+    SupplierDto toResponse(Supplier supplier);
 
-    List<SupplierResponseDto> toResponseList(List<Supplier> suppliers);
+    List<SupplierDto> toResponseList(List<Supplier> suppliers);
 }

@@ -3,18 +3,19 @@ package com.bigobooks.purchases_service.service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import com.bigobooks.purchases_service.dto.SupplierRequestDto;
-import com.bigobooks.purchases_service.dto.SupplierResponseDto;
+import com.bigobooks.dto.SupplierDto;
+import com.bigobooks.dto.SupplierCreateRequest;
+import com.bigobooks.dto.SupplierUpdateRequest;
 
 public interface SupplierService {
 
-	SupplierResponseDto create(SupplierRequestDto request);
+	SupplierDto create(SupplierCreateRequest request);
 
-	SupplierResponseDto update(Long id, SupplierRequestDto request);
+	SupplierDto update(Long id, SupplierUpdateRequest request);
 
-	SupplierResponseDto getById(Long id);
+	SupplierDto getById(Long id);
 
-	Page<SupplierResponseDto> list(Pageable pageable);
+	Page<SupplierDto> list(Pageable pageable);
 
 	void delete(Long id);
 }
