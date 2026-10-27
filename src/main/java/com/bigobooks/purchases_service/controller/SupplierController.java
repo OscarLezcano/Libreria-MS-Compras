@@ -49,7 +49,7 @@ public class SupplierController {
 			@ApiResponse(responseCode = "409", description = "Nombre de proveedor duplicado")
 	})
 
-	@PreAuthorize("hasRole('ADMIN')")
+	@PreAuthorize("@roles.allows('suppliers-manage')")
 	@PostMapping
 	public ResponseEntity<Envelope> create(@Valid @RequestBody SupplierCreateRequest request) {
 		SupplierDto created = supplierService.create(request);
@@ -63,7 +63,7 @@ public class SupplierController {
 			@ApiResponse(responseCode = "409", description = "Nombre de proveedor duplicado")
 	})
 
-	@PreAuthorize("hasRole('ADMIN')")
+	@PreAuthorize("@roles.allows('suppliers-manage')")
 	@PutMapping("/{id}")
 	public ResponseEntity<Envelope> update(
 			@Parameter(description = "Identificador del proveedor") @PathVariable Long id,
@@ -76,7 +76,7 @@ public class SupplierController {
 			@ApiResponse(responseCode = "200", description = "Proveedor encontrado", content = @Content(schema = @Schema(implementation = Envelope.class))),
 			@ApiResponse(responseCode = "404", description = "Proveedor no encontrado")
 	})
-	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
+	@PreAuthorize("@roles.allows('suppliers-view')")
 	@GetMapping("/{id}")
 	public ResponseEntity<Envelope> getById(
 			@Parameter(description = "Identificador del proveedor") @PathVariable Long id) {
@@ -85,7 +85,7 @@ public class SupplierController {
 
 	@Operation(summary = "Listar proveedores", description = "Listado paginado de proveedores activos (no eliminados)")
 	@ApiResponse(responseCode = "200", description = "Pagina de proveedores")
-	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
+	@PreAuthorize("@roles.allows('suppliers-view')")
 	@GetMapping
 	public ResponseEntity<Envelope> list(
 			@RequestParam(defaultValue = "0") int page,
@@ -102,7 +102,7 @@ public class SupplierController {
 			@ApiResponse(responseCode = "204", description = "Proveedor eliminado"),
 			@ApiResponse(responseCode = "404", description = "Proveedor no encontrado")
 	})
-	@PreAuthorize("hasRole('ADMIN')")
+	@PreAuthorize("@roles.allows('suppliers-delete')")
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> delete(
 			@Parameter(description = "Identificador del proveedor") @PathVariable Long id) {

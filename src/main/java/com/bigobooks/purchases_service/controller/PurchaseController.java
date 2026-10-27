@@ -53,7 +53,7 @@ public class PurchaseController {
 			@ApiResponse(responseCode = "404", description = "Proveedor no encontrado")
 	})
 	// Crear compra: reservado para ADMIN o VENDEDOR
-	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
+	@PreAuthorize("@roles.allows('purchases-manage')")
 	@PostMapping
 	public ResponseEntity<Envelope> create(@Valid @RequestBody PurchaseCreateRequest request) {
 		PurchaseDto created = purchaseService.create(request);
@@ -67,7 +67,7 @@ public class PurchaseController {
 	})
 
 	// Consultar por ID: ADMIN o VENDEDOR
-	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
+	@PreAuthorize("@roles.allows('purchases-view')")
 	@GetMapping("/{id}")
 	public ResponseEntity<Envelope> getById(
 			@Parameter(description = "Identificador de la compra") @PathVariable Long id) {
@@ -78,7 +78,7 @@ public class PurchaseController {
 	@Operation(summary = "Listar compras", description = "Listado paginado con filtros opcionales")
 	@ApiResponse(responseCode = "200", description = "Pagina de compras")
 	// Listado paginado: ADMIN o VENDEDOR
-	@PreAuthorize("hasAnyRole('ADMIN', 'VENDEDOR')")
+	@PreAuthorize("@roles.allows('purchases-view')")
 	@GetMapping
 	public ResponseEntity<Envelope> list(
 			@Parameter(description = "Filtrar por estado") @RequestParam(required = false) PurchaseStatus status,
@@ -107,7 +107,7 @@ public class PurchaseController {
 	})
 
 	// Cambiar estado: solo ADMIN
-	@PreAuthorize("hasRole('ADMIN')")
+	@PreAuthorize("@roles.allows('purchases-status')")
 	@PatchMapping("/{id}/status")
 	public ResponseEntity<Envelope> updateStatus(
 			@Parameter(description = "Identificador de la compra") @PathVariable Long id,
@@ -122,7 +122,7 @@ public class PurchaseController {
 	})
 
 	// Eliminar compra: solo ADMIN
-	@PreAuthorize("hasRole('ADMIN')")
+	@PreAuthorize("@roles.allows('purchases-delete')")
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> delete(
 			@Parameter(description = "Identificador de la compra") @PathVariable Long id) {
