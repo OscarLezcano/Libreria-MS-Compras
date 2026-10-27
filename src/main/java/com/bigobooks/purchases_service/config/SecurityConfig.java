@@ -50,10 +50,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtAuthenticationConverter jwtAuthenticationConverter(
-            @Value("${security.jwt.role-claim}") String authoritiesClaim,
-            @Value("${security.jwt.authority-prefix}") String authorityPrefix) {
-        return JwtSecuritySupport.authenticationConverter(authoritiesClaim, authorityPrefix);
+	JwtAuthenticationConverter jwtAuthenticationConverter() {
+		return JwtSecuritySupport.authenticationConverter("role", "ROLE_");
     }
 
     @Bean
