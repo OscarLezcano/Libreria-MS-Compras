@@ -1,8 +1,12 @@
 package com.bigobooks.purchases_service.exception;
 
-public class NotFoundException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+import com.bigobooks.shared.exception.ApiException;
+
+public class NotFoundException extends ApiException {
 
 	public NotFoundException(String message) {
-		super(message);
+		super(HttpStatus.NOT_FOUND, message);
 	}
 }
