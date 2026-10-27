@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- cSpell:disable -->
+<configuration>
+	<include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+	<springProperty scope="context" name="logPath" source="purchases.log.path" defaultValue="logs"/>
+	<springProperty scope="context" name="logFile" source="purchases.log.file" defaultValue="purchases-service.log"/>
+	<springProperty scope="context" name="logPattern" source="purchases.log.pattern" defaultValue="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{40} - %msg%n"/>
+	<springProperty scope="context" name="levelBigobooks" source="purchases.log.level.com.bigobooks" defaultValue="INFO"/>
+	<springProperty scope="context" name="levelRepositories" source="purchases.log.level.repositories" defaultValue="DEBUG"/>
+	<springProperty scope="context" name="levelSql" source="purchases.log.level.sql" defaultValue="DEBUG"/>
+
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${CONSOLE_LOG_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${logPath}/${logFile}</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${logPath}/${logFile}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+			<maxFileSize>10MB</maxFileSize>
+			<maxHistory>30</maxHistory>
+			<totalSizeCap>200MB</totalSizeCap>
+		</rollingPolicy>
+		<encoder>
+			<pattern>${logPattern}</pattern>
+		</encoder>
+	</appender>
+
+	<root level="${levelBigobooks}">
+		<appender-ref ref="CONSOLE"/>
+		<appender-ref ref="FILE"/>
+	</root>
+
+	<!-- Service / App: pasos clave en INFO -->
+	<logger name="com.bigobooks" level="${levelBigobooks}"/>
+
+	<!-- Repository: consultas en DEBUG -->
+	<logger name="com.bigobooks.purchases_service.repository" level="${levelRepositories}"/>
+	<!-- Consultas SQL reales -->
+	<logger name="org.hibernate.SQL" level="${levelSql}"/>
+	<logger name="org.hibernate.type.descriptor.sql" level="${levelSql}"/>
+</configuration>

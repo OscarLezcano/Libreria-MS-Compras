@@ -1,0 +1,316 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://localhost:8083
+  description: Generated server url
+tags:
+- name: Compras
+  description: "Registro de compras a proveedores, consulta, cambio de estado y baja\
+    \ logica"
+- name: Proveedores
+  description: "Alta, consulta, actualizacion y baja logica de proveedores"
+paths:
+  /api/v1/suppliers/{id}:
+    get:
+      tags:
+      - Proveedores
+      summary: Obtener proveedor por id
+      operationId: getById
+      parameters:
+      - name: id
+        in: path
+        description: Identificador del proveedor
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "404":
+          description: Proveedor no encontrado
+        "200":
+          description: Proveedor encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
+    put:
+      tags:
+      - Proveedores
+      summary: Actualizar proveedor
+      description: Actualiza nombre y RUC de un proveedor existente
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        description: Identificador del proveedor
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierUpdateRequest' 
+      responses:
+        "409":
+          description: Nombre de proveedor duplicado
+        "404":
+          description: Proveedor no encontrado
+        "200":
+          description: Proveedor actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
+    delete:
+      tags:
+      - Proveedores
+      summary: Eliminar proveedor
+      description: Borrado logico del proveedor
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        description: Identificador del proveedor
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Proveedor eliminado
+        "404":
+          description: Proveedor no encontrado
+  /api/v1/suppliers:
+    get:
+      tags:
+      - Proveedores
+      summary: Listar proveedores
+      description: Listado paginado de proveedores activos (no eliminados)
+      operationId: list
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: size
+        in: query
+        schema:
+          type: integer
+          default: 25
+      - name: sort
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Pagina de proveedores
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
+    post:
+      tags:
+      - Proveedores
+      summary: Crear proveedor
+      description: Registra un nuevo proveedor en el sistema
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierCreateRequest'
+        required: true
+      responses:
+        "409":
+          description: Nombre de proveedor duplicado
+        "400":
+          description: Datos invalidos
+        "201":
+          description: Proveedor creado
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
+  /api/v1/purchases:
+    get:
+      tags:
+      - Compras
+      summary: Listar compras
+      description: Listado paginado con filtros opcionales
+      operationId: list_1
+      parameters:
+      - name: status
+        in: query
+        description: Filtrar por estado
+        required: false
+        schema:
+          type: string
+          enum:
+          - PENDING
+          - RECEIVED
+          - CANCELLED
+      - name: warehouseId
+        in: query
+        description: Filtrar por almacen
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: supplierId
+        in: query
+        description: Filtrar por proveedor
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: bookId
+        in: query
+        description: Filtrar compras que incluyan este libro
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: invoiceNumber
+        in: query
+        description: Busqueda parcial por numero de factura
+        required: false
+        schema:
+          type: string
+      - name: createdFrom
+        in: query
+        description: Fecha de creacion desde (ISO)
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: createdTo
+        in: query
+        description: Fecha de creacion hasta (ISO)
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: size
+        in: query
+        schema:
+          type: integer
+          default: 25
+      - name: sort
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Pagina de compras
+          content:
+            '*/*':
+              schema:
+                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
+    post:
+      tags:
+      - Compras
+      summary: Crear compra
+      description: Registra una compra con detalles y calcula el total automaticamente
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/PurchaseCreateRequest'
+        required: true
+      responses:
+        "201":
+          description: Compra creada
+          content:
+            '*/*':
+              schema:
+                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
+        "404":
+          description: Proveedor no encontrado
+        "400":
+          description: Datos invalidos
+  /api/v1/purchases/{id}/status:
+    patch:
+      tags:
+      - Compras
+      summary: Actualizar estado de la compra
+      description: "Transiciones: PENDING -> RECEIVED o CANCELLED"
+      operationId: updateStatus
+      parameters:
+      - name: id
+        in: path
+        description: Identificador de la compra
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/PurchaseStatusChange'
+        required: true
+      responses:
+        "404":
+          description: Compra no encontrada
+        "409":
+          description: Transicion de estado no permitida
+        "200":
+          description: Estado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
+  /api/v1/purchases/{id}:
+    get:
+      tags:
+      - Compras
+      summary: Obtener compra por id
+      operationId: getById_1
+      parameters:
+      - name: id
+        in: path
+        description: Identificador de la compra
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "404":
+          description: Compra no encontrada
+        "200":
+          description: Compra encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
+    delete:
+      tags:
+      - Compras
+      summary: Eliminar compra
+      description: Borrado logico de la compra
+      operationId: delete_1
+      parameters:
+      - name: id
+        in: path
+        description: Identificador de la compra
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "404":
+          description: Compra no encontrada
+        "204":
+          description: Compra eliminada
