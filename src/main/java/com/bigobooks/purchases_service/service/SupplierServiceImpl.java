@@ -4,8 +4,9 @@ import com.bigobooks.dto.SupplierDto;
 import com.bigobooks.dto.SupplierCreateRequest;
 import com.bigobooks.dto.SupplierUpdateRequest;
 import com.bigobooks.entities.purchases.Supplier;
-import com.bigobooks.purchases_service.exception.ConflictException;
-import com.bigobooks.purchases_service.exception.NotFoundException;
+import com.bigobooks.util.exception.ConflictException;
+import com.bigobooks.util.exception.NotFoundException;
+import com.bigobooks.util.exception.ResourceType;
 import com.bigobooks.purchases_service.mappers.SupplierMapper;
 import com.bigobooks.purchases_service.repository.SupplierRepository;
 import com.bigobooks.service.BaseService;
@@ -90,7 +91,7 @@ public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepositor
 	}
 
 	private Supplier requireById(Long id) {
-		return findById(id).orElseThrow(() -> new NotFoundException("Proveedor no encontrado con id: " + id));
+		return findById(id).orElseThrow(() -> NotFoundException.byId(ResourceType.SUPPLIER, id));
 	}
 
 	private String normalizeName(String name) {

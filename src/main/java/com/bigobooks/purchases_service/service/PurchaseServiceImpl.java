@@ -10,8 +10,9 @@ import com.bigobooks.entities.purchases.PurchaseDetail;
 import com.bigobooks.entities.purchases.PurchaseStatus;
 import com.bigobooks.entities.purchases.Supplier;
 import com.bigobooks.purchases_service.client.BookClient;
-import com.bigobooks.purchases_service.exception.ConflictException;
-import com.bigobooks.purchases_service.exception.NotFoundException;
+import com.bigobooks.util.exception.ConflictException;
+import com.bigobooks.util.exception.NotFoundException;
+import com.bigobooks.util.exception.ResourceType;
 import com.bigobooks.purchases_service.mappers.PurchaseMapper;
 import com.bigobooks.purchases_service.repository.PurchaseDetailRepository;
 import com.bigobooks.purchases_service.repository.PurchaseRepository;
@@ -59,7 +60,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
     @Transactional
     public PurchaseDto create(PurchaseCreateRequest request) {
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
-                .orElseThrow(() -> new NotFoundException("No existe el proveedor con id " + request.getSupplierId()));
+                .orElseThrow(() -> NotFoundException.byId(ResourceType.SUPPLIER, request.getSupplierId()));
 
         Purchase purchase = new Purchase();
         if (request.getWarehouseId() != null) {
@@ -152,7 +153,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     private Purchase requireById(Long id) {
         return getRepository().findByIdWithDetails(id)
-                .orElseThrow(() -> new NotFoundException("No existe la compra con id " + id));
+                .orElseThrow(() -> NotFoundException.byId(ResourceType.PURCHASE, id));
     }
 
     private void addDetail(Purchase purchase, PurchaseItemCreate item) {
