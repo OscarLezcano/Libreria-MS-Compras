@@ -314,3 +314,27 @@ paths:
           description: Compra no encontrada
         "204":
           description: Compra eliminada
+  /api/v1/purchases/{id}/details:
+    get:
+      tags:
+      - Compras
+      summary: Obtener detalles de la compra
+      description: Devuelve unicamente los items (detalles) de la compra indicada
+      operationId: getPurchaseDetails
+      parameters:
+      - name: id
+        in: path
+        description: Identificador de la compra
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Detalles de la compra encontrados
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/PurchaseDetailListResponse'
+        "404":
+          description: Compra no encontrada

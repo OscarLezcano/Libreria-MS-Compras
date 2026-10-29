@@ -13,10 +13,13 @@ import com.bigobooks.dto.Envelope;
 import com.bigobooks.util.Envelopes;
 import com.bigobooks.util.Pageables;
 import com.bigobooks.dto.PurchaseCreateRequest;
+import com.bigobooks.dto.PurchaseDetailListResponse;
 import com.bigobooks.dto.PurchaseDto;
 import com.bigobooks.dto.PurchaseStatusChange;
 import com.bigobooks.entities.purchases.PurchaseStatus;
 import com.bigobooks.purchases_service.service.PurchaseService;
+import com.bigobooks.util.exception.NotFoundException;
+import com.bigobooks.util.exception.ResourceType;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -72,6 +75,21 @@ public class PurchaseController {
 	public ResponseEntity<Envelope> getById(
 			@Parameter(description = "Identificador de la compra") @PathVariable Long id) {
 		return ResponseEntity.ok(new Envelope().data(purchaseService.getById(id)));
+	}
+
+	@Operation(summary = "Obtener detalles de la compra", description = "Devuelve unicamente los items de la compra indicada")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Detalles de la compra encontrados", content = @Content(schema = @Schema(implementation = PurchaseDetailListResponse.class))),
+			@ApiResponse(responseCode = "404", description = "Compra no encontrada")
+	})
+	// Consultar detalles por ID de compra: ADMIN o VENDEDOR
+	@PreAuthorize("@roles.allows('purchases-view')")
+	@GetMapping("/{id}/details")
+	public ResponseEntity<PurchaseDetailListResponse> getDetails(
+			@Parameter(description = "Identificador de la compra") @PathVariable Long id) {
+		return purchaseService.getDetails(id)
+				.map(details -> ResponseEntity.ok(new PurchaseDetailListResponse().data(details)))
+				.orElseThrow(() -> NotFoundException.byId(ResourceType.PURCHASE, id));
 	}
 
 

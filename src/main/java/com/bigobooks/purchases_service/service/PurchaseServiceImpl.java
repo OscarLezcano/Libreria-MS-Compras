@@ -2,6 +2,7 @@ package com.bigobooks.purchases_service.service;
 
 import com.bigobooks.dto.BookResponse;
 import com.bigobooks.dto.PurchaseCreateRequest;
+import com.bigobooks.dto.PurchaseDetailDto;
 import com.bigobooks.dto.PurchaseDto;
 import com.bigobooks.dto.PurchaseItemCreate;
 import com.bigobooks.dto.PurchaseStatusChange;
@@ -13,6 +14,7 @@ import com.bigobooks.purchases_service.client.BookClient;
 import com.bigobooks.util.exception.ConflictException;
 import com.bigobooks.util.exception.NotFoundException;
 import com.bigobooks.util.exception.ResourceType;
+import com.bigobooks.purchases_service.mappers.PurchaseDetailMapper;
 import com.bigobooks.purchases_service.mappers.PurchaseMapper;
 import com.bigobooks.purchases_service.repository.PurchaseDetailRepository;
 import com.bigobooks.purchases_service.repository.PurchaseRepository;
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -40,6 +43,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
     private final SupplierRepository supplierRepository;
     private final StockService stockService;
     private final PurchaseMapper purchaseMapper;
+    private final PurchaseDetailMapper purchaseDetailMapper;
     private final BookClient bookClient;
 
     public PurchaseServiceImpl(PurchaseRepository purchaseRepository,
@@ -47,12 +51,14 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
             SupplierRepository supplierRepository,
             StockService stockService,
             PurchaseMapper purchaseMapper,
+            PurchaseDetailMapper purchaseDetailMapper,
             BookClient bookClient) {
         super(purchaseRepository);
         this.purchaseDetailRepository = purchaseDetailRepository;
         this.supplierRepository = supplierRepository;
         this.stockService = stockService;
         this.purchaseMapper = purchaseMapper;
+        this.purchaseDetailMapper = purchaseDetailMapper;
         this.bookClient = bookClient;
     }
 
@@ -95,6 +101,16 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
         Purchase purchase = requireById(id);
         log.info("Consulta de compra id={} (estado={})", purchase.getId(), purchase.getStatus());
         return purchaseMapper.toResponse(purchase);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<List<PurchaseDetailDto>> getDetails(Long id) {
+        if (!getRepository().existsById(id)) {
+            return Optional.empty();
+        }
+        log.info("Consulta de detalles de compra id={}", id);
+        return Optional.of(purchaseDetailMapper.toResponseList(purchaseDetailRepository.findByPurchaseId(id)));
     }
 
     @Override
