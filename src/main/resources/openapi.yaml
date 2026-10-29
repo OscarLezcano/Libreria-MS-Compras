@@ -34,7 +34,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
+                $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
     put:
       tags:
       - Proveedores
@@ -54,7 +54,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierUpdateRequest' 
+              $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/SupplierUpdateRequest' 
       responses:
         "409":
           description: Nombre de proveedor duplicado
@@ -65,7 +65,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
+                $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
     delete:
       tags:
       - Proveedores
@@ -113,7 +113,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
+                $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
     post:
       tags:
       - Proveedores
@@ -124,7 +124,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierCreateRequest'
+              $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/SupplierCreateRequest'
         required: true
       responses:
         "409":
@@ -136,7 +136,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
+                $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/SupplierDto'
   /api/v1/purchases:
     get:
       tags:
@@ -216,7 +216,7 @@ paths:
           content:
             '*/*':
               schema:
-                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
+                $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
     post:
       tags:
       - Compras
@@ -227,7 +227,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/PurchaseCreateRequest'
+              $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/PurchaseCreateRequest'
         required: true
       responses:
         "201":
@@ -235,7 +235,7 @@ paths:
           content:
             '*/*':
               schema:
-                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
+                $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
         "404":
           description: Proveedor no encontrado
         "400":
@@ -259,7 +259,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/PurchaseStatusChange'
+              $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/PurchaseStatusChange'
         required: true
       responses:
         "404":
@@ -271,7 +271,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
+                $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
   /api/v1/purchases/{id}:
     get:
       tags:
@@ -294,7 +294,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
+                $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
     delete:
       tags:
       - Compras
@@ -335,6 +335,6 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../../../../Libreria-Common/src/main/resources/openapi.yaml#/components/schemas/PurchaseDetailListResponse'
+                $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/PurchaseDetailListResponse'
         "404":
           description: Compra no encontrada
