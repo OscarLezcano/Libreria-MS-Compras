@@ -83,15 +83,17 @@ public class SupplierController {
 		return ResponseEntity.ok(new Envelope().data(supplierService.getById(id)));
 	}
 
-	@Operation(summary = "Listar proveedores", description = "Listado paginado de proveedores activos (no eliminados)")
+	@Operation(summary = "Listar y buscar proveedores", description = "Listado paginado de proveedores activos con filtro opcional por nombre o RUC")
 	@ApiResponse(responseCode = "200", description = "Pagina de proveedores")
 	@PreAuthorize("@roles.allows('suppliers-view')")
 	@GetMapping
 	public ResponseEntity<Envelope> list(
+			@Parameter(description = "Texto parcial a buscar en nombre o RUC")
+			@RequestParam(required = false) String search,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "25") int size) {
 		Pageable pageable = pageables.of(page, size);
-		Page<SupplierDto> result = supplierService.list(pageable);
+		Page<SupplierDto> result = supplierService.list(search, pageable);
 		return ResponseEntity.ok(new Envelope()
 				.data(result.getContent())
 				.pagination(Envelopes.pagination(result)));

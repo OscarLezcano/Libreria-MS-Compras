@@ -156,6 +156,11 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
         }
 
         if (newStatus == PurchaseStatus.RECEIVED) {
+            String invoiceNumber = request.getInvoiceNumber();
+            if (invoiceNumber == null || invoiceNumber.isBlank()) {
+                throw new IllegalArgumentException("invoiceNumber es obligatorio al aceptar la compra");
+            }
+            purchase.setInvoiceNumber(invoiceNumber.trim());
             stockService.increaseStock(purchase);
         }
 

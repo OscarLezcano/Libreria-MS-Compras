@@ -17,6 +17,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -71,10 +72,13 @@ public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepositor
 
 	@Override
 	@Transactional(readOnly = true)
-	public Page<SupplierDto> list(Pageable pageable) {
+	public Page<SupplierDto> list(String search, Pageable pageable) {
 		// Sin @Cacheable para cumplir la restricción de no almacenar paginaciones
 		// completas
-		Page<SupplierDto> page = getRepository().findAll(pageable).map(supplierMapper::toResponse);
+		Page<Supplier> suppliers = StringUtils.hasText(search)
+				? getRepository().searchByNameOrRuc(search.trim(), pageable)
+				: getRepository().findAll(pageable);
+		Page<SupplierDto> page = suppliers.map(supplierMapper::toResponse);
 		log.info("Listado de proveedores: pagina {} con {} resultado(s)", page.getNumber(), page.getTotalElements());
 		return page;
 	}

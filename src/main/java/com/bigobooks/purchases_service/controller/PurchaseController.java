@@ -121,9 +121,10 @@ public class PurchaseController {
 				.pagination(Envelopes.pagination(result)));
 	}
 
-	@Operation(summary = "Actualizar estado de la compra", description = "Transiciones: PENDING -> RECEIVED o CANCELLED")
+	@Operation(summary = "Actualizar estado de la compra", description = "Transiciones: PENDING -> RECEIVED o CANCELLED; invoiceNumber es obligatorio al recibir")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Estado actualizado", content = @Content(schema = @Schema(implementation = Envelope.class))),
+			@ApiResponse(responseCode = "400", description = "Debe indicar el numero de factura al recibir la compra"),
 			@ApiResponse(responseCode = "404", description = "Compra no encontrada"),
 			@ApiResponse(responseCode = "409", description = "Transicion de estado no permitida")
 	})

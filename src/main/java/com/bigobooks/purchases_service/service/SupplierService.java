@@ -15,7 +15,7 @@ public interface SupplierService {
 
 	SupplierDto getById(Long id);
 
-	Page<SupplierDto> list(Pageable pageable);
+	Page<SupplierDto> list(String search, Pageable pageable);
 
 	void delete(Long id);
 }
