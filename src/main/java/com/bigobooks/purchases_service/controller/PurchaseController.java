@@ -17,6 +17,7 @@ import com.bigobooks.dto.PurchaseDetailListResponse;
 import com.bigobooks.dto.PurchaseDto;
 import com.bigobooks.dto.PurchaseStatusChange;
 import com.bigobooks.entities.purchases.PurchaseStatus;
+import com.bigobooks.purchases_service.security.AuthenticatedUser;
 import com.bigobooks.purchases_service.service.PurchaseService;
 import com.bigobooks.util.exception.NotFoundException;
 import com.bigobooks.util.exception.ResourceType;
@@ -43,23 +44,26 @@ public class PurchaseController {
 
 	private final Pageables pageables;
 	private final PurchaseService purchaseService;
+	private final AuthenticatedUser authenticatedUser;
 
 	@Value("${app.pagination.page-size:25}")
 	private int defaultPageSize;
 	@Value("${app.pagination.max-page-size:100}")
 	private int maxPageSize;
 
-	@Operation(summary = "Crear compra", description = "Registra una compra con detalles y calcula el total automaticamente")
+	@Operation(summary = "Crear compra", description = "Registra una compra con detalles y calcula el total automaticamente. El almacen se toma del token JWT del usuario autenticado")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "Compra creada", content = @Content(schema = @Schema(implementation = Envelope.class))),
 			@ApiResponse(responseCode = "400", description = "Datos invalidos"),
+			@ApiResponse(responseCode = "401", description = "Token sin almacen asociado"),
 			@ApiResponse(responseCode = "404", description = "Proveedor no encontrado")
 	})
 	// Crear compra: reservado para ADMIN o VENDEDOR
 	@PreAuthorize("@roles.allows('purchases-manage')")
 	@PostMapping
 	public ResponseEntity<Envelope> create(@Valid @RequestBody PurchaseCreateRequest request) {
-		PurchaseDto created = purchaseService.create(request);
+		Long warehouseId = authenticatedUser.requireWarehouseId();
+		PurchaseDto created = purchaseService.create(warehouseId, request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(new Envelope().data(created));
 	}
 

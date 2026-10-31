@@ -25,7 +25,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,9 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepository> implements PurchaseService {
+
+    private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "createdAt")
+            .and(Sort.by(Sort.Direction.DESC, "id"));
 
     private final PurchaseDetailRepository purchaseDetailRepository;
     private final SupplierRepository supplierRepository;
@@ -64,14 +69,15 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     @Override
     @Transactional
-    public PurchaseDto create(PurchaseCreateRequest request) {
+    public PurchaseDto create(Long warehouseId, PurchaseCreateRequest request) {
+        if (warehouseId == null) {
+            throw new IllegalArgumentException("El almacen (warehouseId) es obligatorio");
+        }
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> NotFoundException.byId(ResourceType.SUPPLIER, request.getSupplierId()));
 
         Purchase purchase = new Purchase();
-        if (request.getWarehouseId() != null) {
-            purchase.setWarehouseId(request.getWarehouseId());
-        }
+        purchase.setWarehouseId(warehouseId);
         purchase.setSupplier(supplier);
         purchase.setStatus(PurchaseStatus.PENDING);
         if (request.getInvoiceNumber() != null) {
@@ -88,8 +94,8 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
         saved.setTotalPrice(calculateTotalPrice(saved.getPurchaseDetails()));
         Purchase result = save(saved);
 
-        log.info("Compra id={} creada: {} detalle(s), proveedor={}, total={}", result.getId(),
-                result.getPurchaseDetails().size(), supplier.getId(), result.getTotalPrice());
+        log.info("Compra id={} creada: {} detalle(s), proveedor={}, almacen={}, total={}", result.getId(),
+                result.getPurchaseDetails().size(), supplier.getId(), warehouseId, result.getTotalPrice());
         return purchaseMapper.toResponse(result);
     }
 
@@ -120,7 +126,10 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
         // Sin @Cacheable: consultas masivas y paginadas van directo a la base de datos
         Specification<Purchase> spec = PurchaseSpecifications.build(status, warehouseId, supplierId, bookId,
                 invoiceNumber, createdFrom, createdTo);
-        Page<PurchaseDto> page = getRepository().findAll(spec, pageable).map(purchaseMapper::toResponse);
+        Pageable sortedPageable = pageable.getSort().isSorted()
+                ? pageable
+                : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), DEFAULT_SORT);
+        Page<PurchaseDto> page = getRepository().findAll(spec, sortedPageable).map(purchaseMapper::toResponse);
         log.info("Listado de compras: pagina {} con {} resultado(s)", page.getNumber(), page.getTotalElements());
         return page;
     }

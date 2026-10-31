@@ -14,7 +14,7 @@ import java.util.Optional;
 
 public interface PurchaseService {
 
-    PurchaseDto create(PurchaseCreateRequest request);
+    PurchaseDto create(Long warehouseId, PurchaseCreateRequest request);
 
     PurchaseDto getById(Long id);
 

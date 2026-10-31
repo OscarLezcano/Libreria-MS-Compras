@@ -221,7 +221,7 @@ paths:
       tags:
       - Compras
       summary: Crear compra
-      description: Registra una compra con detalles y calcula el total automaticamente
+      description: Registra una compra con detalles y calcula el total automaticamente. El almacen se obtiene del token JWT del usuario autenticado
       operationId: create_1
       requestBody:
         content:
@@ -238,6 +238,8 @@ paths:
                 $ref: '../../../../common/src/main/resources/openapi.yaml#/components/schemas/Envelope'
         "404":
           description: Proveedor no encontrado
+        "401":
+          description: Token sin almacen asociado
         "400":
           description: Datos invalidos
   /api/v1/purchases/{id}/status:
