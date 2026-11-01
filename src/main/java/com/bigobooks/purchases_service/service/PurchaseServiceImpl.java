@@ -11,6 +11,8 @@ import com.bigobooks.entities.purchases.PurchaseDetail;
 import com.bigobooks.entities.purchases.PurchaseStatus;
 import com.bigobooks.entities.purchases.Supplier;
 import com.bigobooks.purchases_service.client.BookClient;
+import com.bigobooks.purchases_service.repository.BookRepository;
+import com.bigobooks.purchases_service.repository.WarehouseRepository;
 import com.bigobooks.util.exception.ConflictException;
 import com.bigobooks.util.exception.NotFoundException;
 import com.bigobooks.util.exception.ResourceType;
@@ -41,6 +43,10 @@ import java.util.Optional;
 @Slf4j
 public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepository> implements PurchaseService {
 
+    private final WarehouseRepository warehouseRepository;
+
+    private final BookRepository bookRepository;
+
     private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "createdAt")
             .and(Sort.by(Sort.Direction.DESC, "id"));
 
@@ -57,7 +63,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
             StockService stockService,
             PurchaseMapper purchaseMapper,
             PurchaseDetailMapper purchaseDetailMapper,
-            BookClient bookClient) {
+            BookClient bookClient, BookRepository bookRepository, WarehouseRepository warehouseRepository) {
         super(purchaseRepository);
         this.purchaseDetailRepository = purchaseDetailRepository;
         this.supplierRepository = supplierRepository;
@@ -65,14 +71,21 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
         this.purchaseMapper = purchaseMapper;
         this.purchaseDetailMapper = purchaseDetailMapper;
         this.bookClient = bookClient;
+        this.bookRepository = bookRepository;
+        this.warehouseRepository = warehouseRepository;
     }
 
     @Override
     @Transactional
     public PurchaseDto create(Long warehouseId, PurchaseCreateRequest request) {
+        if (warehouseRepository.getReferenceById(warehouseId) == null) {
+            throw new IllegalArgumentException("La sucursal en la que estas logueado no existe");
+        }
+
         if (warehouseId == null) {
             throw new IllegalArgumentException("El almacen (warehouseId) es obligatorio");
         }
+
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> NotFoundException.byId(ResourceType.SUPPLIER, request.getSupplierId()));
 
@@ -192,16 +205,18 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
         detail.setBookId(item.getBookId());
         detail.setQuantity(item.getQuantity());
         detail.setUnitCost(item.getUnitCost());
-        try {
-            BookResponse response = bookClient.getBookById(item.getBookId());
-            if (response != null && response.getData() != null) {
-                detail.setBookName(response.getData().getTitle());
-            }
-        } catch (Exception e) {
-            // Al fallar la conexión con stock-service, asigna este texto de respaldo:
-            log.warn("No se pudo conectar a stock-service, asignando nombre simulado: {}", e.getMessage());
-            detail.setBookName("Libro de Prueba (ID " + item.getBookId() + ")");
-        }
+        detail.setBookName(bookRepository.getReferenceById(item.getBookId()).getTitle());
+        // try {
+        // BookResponse response = bookClient.getBookById(item.getBookId());
+        // if (response != null && response.getData() != null) {
+        // detail.setBookName(response.getData().getTitle());
+        // }
+        // } catch (Exception e) {
+        // // Al fallar la conexión con stock-service, asigna este texto de respaldo:
+        // log.warn("No se pudo conectar a stock-service, asignando nombre simulado:
+        // {}", e.getMessage());
+        // detail.setBookName("Libro de Prueba (ID " + item.getBookId() + ")");
+        // }
 
         PurchaseDetail savedDetail = purchaseDetailRepository.save(detail);
         purchase.getPurchaseDetails().add(savedDetail);
