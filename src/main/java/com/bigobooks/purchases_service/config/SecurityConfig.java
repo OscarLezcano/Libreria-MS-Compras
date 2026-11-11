@@ -37,7 +37,7 @@ public class SecurityConfig {
 
     @Bean
 	JwtAuthenticationConverter jwtAuthenticationConverter() {
-		return JwtSecuritySupport.authenticationConverter("role", "ROLE_");
+        return JwtSecuritySupport.authenticationConverter("roles", "ROLE_");
     }
 
     @Bean
