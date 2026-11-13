@@ -26,4 +26,7 @@ public interface PurchaseService {
     PurchaseDto updateStatus(Long id, PurchaseStatusChange request);
 
     void delete(Long id);
+
+    // Metodo temporal para la demo de propagaciones transaccionales
+    void executePropagationFromPurchaseService(String type);
 }

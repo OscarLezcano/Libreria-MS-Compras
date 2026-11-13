@@ -18,4 +18,17 @@ public interface SupplierService {
 	Page<SupplierDto> list(String search, Pageable pageable);
 
 	void delete(Long id);
+
+	// Metodos temporales para la demo de propagaciones transaccionales
+	void testRequired();
+
+	void testRequiresNew();
+
+	void testSupports();
+
+	void testNotSupported();
+
+	void testMandatory();
+
+	void testNever();
 }
