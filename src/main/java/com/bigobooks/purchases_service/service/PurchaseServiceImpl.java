@@ -32,7 +32,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -52,6 +54,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
 
     private final PurchaseDetailRepository purchaseDetailRepository;
     private final SupplierRepository supplierRepository;
+    private final SupplierService supplierService;
     private final StockService stockService;
     private final PurchaseMapper purchaseMapper;
     private final PurchaseDetailMapper purchaseDetailMapper;
@@ -60,6 +63,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
     public PurchaseServiceImpl(PurchaseRepository purchaseRepository,
             PurchaseDetailRepository purchaseDetailRepository,
             SupplierRepository supplierRepository,
+            SupplierService supplierService,
             StockService stockService,
             PurchaseMapper purchaseMapper,
             PurchaseDetailMapper purchaseDetailMapper,
@@ -67,6 +71,7 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
         super(purchaseRepository);
         this.purchaseDetailRepository = purchaseDetailRepository;
         this.supplierRepository = supplierRepository;
+        this.supplierService = supplierService;
         this.stockService = stockService;
         this.purchaseMapper = purchaseMapper;
         this.purchaseDetailMapper = purchaseDetailMapper;
@@ -198,6 +203,43 @@ public class PurchaseServiceImpl extends BaseService<Purchase, PurchaseRepositor
         return getRepository().findByIdWithDetails(id)
                 .orElseThrow(() -> NotFoundException.byId(ResourceType.PURCHASE, id));
     }
+
+    // ===== Demo temporal de propagaciones transaccionales =====
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void executePropagationFromPurchaseService(String type) {
+        boolean parentActive = TransactionSynchronizationManager.isActualTransactionActive();
+        String parentName = TransactionSynchronizationManager.getCurrentTransactionName();
+        log.info("[TX-DEMO][PADRE][INICIO] type={}, isActualTransactionActive={}, currentTransactionName={}", type,
+                parentActive, parentName);
+
+        try {
+            if (type == null || type.isBlank()) {
+                throw new IllegalArgumentException("El tipo de propagacion es obligatorio");
+            }
+
+            switch (type.toUpperCase()) {
+                case "REQUIRED" -> supplierService.testRequired();
+                case "REQUIRES_NEW" -> supplierService.testRequiresNew();
+                case "SUPPORTS" -> supplierService.testSupports();
+                case "NOT_SUPPORTED" -> supplierService.testNotSupported();
+                case "MANDATORY" -> supplierService.testMandatory();
+                case "NEVER" -> supplierService.testNever();
+                default -> throw new IllegalArgumentException("Tipo de propagacion no valido: " + type);
+            }
+
+            log.info("[TX-DEMO][PADRE][FIN] type={}, isActualTransactionActive={}, currentTransactionName={}", type,
+                    TransactionSynchronizationManager.isActualTransactionActive(),
+                    TransactionSynchronizationManager.getCurrentTransactionName());
+        } catch (RuntimeException ex) {
+            log.error("[TX-DEMO][PADRE][ERROR] type={}, currentTransactionName={}, error={}", type,
+                    TransactionSynchronizationManager.getCurrentTransactionName(), ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    // ===== Fin demo temporal =====
 
     private void addDetail(Purchase purchase, PurchaseItemCreate item) {
         PurchaseDetail detail = new PurchaseDetail();

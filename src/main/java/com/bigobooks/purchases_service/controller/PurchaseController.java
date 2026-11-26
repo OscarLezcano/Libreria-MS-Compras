@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,7 @@ import com.bigobooks.dto.PurchaseStatusChange;
 import com.bigobooks.entities.purchases.PurchaseStatus;
 import com.bigobooks.purchases_service.security.AuthenticatedUser;
 import com.bigobooks.purchases_service.service.PurchaseService;
+import com.bigobooks.purchases_service.service.SupplierService;
 import com.bigobooks.util.exception.NotFoundException;
 import com.bigobooks.util.exception.ResourceType;
 
@@ -31,6 +33,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -39,11 +42,13 @@ import org.springframework.format.annotation.DateTimeFormat;
 @RequestMapping("/api/v1/purchases")
 @Validated
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Compras", description = "Registro de compras a proveedores, consulta, cambio de estado y baja logica")
 public class PurchaseController {
 
 	private final Pageables pageables;
 	private final PurchaseService purchaseService;
+	private final SupplierService supplierService;
 	private final AuthenticatedUser authenticatedUser;
 
 	@Value("${app.pagination.page-size:25}")
@@ -152,4 +157,50 @@ public class PurchaseController {
 		purchaseService.delete(id);
 		return ResponseEntity.noContent().build();
 	}
+
+	// ===== Demo temporal de propagaciones transaccionales =====
+
+	@Operation(summary = "Demo propagacion directa", description = "Invoca directamente SupplierService sin transaccion previa. MANDATORY responde HTTP 400 con IllegalTransactionStateException.")
+	@GetMapping("/tx-demo/direct/{type}")
+	public ResponseEntity<String> txDemoDirect(@PathVariable String type) {
+		try {
+			switch (type.toUpperCase()) {
+				case "REQUIRED" -> supplierService.testRequired();
+				case "REQUIRES_NEW" -> supplierService.testRequiresNew();
+				case "SUPPORTS" -> supplierService.testSupports();
+				case "NOT_SUPPORTED" -> supplierService.testNotSupported();
+				case "MANDATORY" -> supplierService.testMandatory();
+				case "NEVER" -> supplierService.testNever();
+				default -> throw new IllegalArgumentException("Tipo de propagacion no valido: " + type);
+			}
+			return ResponseEntity.ok("OK: propagacion " + type.toUpperCase()
+					+ " ejecutada directamente. Revisar la consola con el prefijo [TX-DEMO].");
+		} catch (IllegalTransactionStateException ex) {
+			log.error("[TX-DEMO][DIRECT][{}] Error esperado: {}", type, ex.getMessage(), ex);
+			return ResponseEntity.badRequest()
+					.body("Error de propagacion " + type.toUpperCase() + ": " + ex.getMessage());
+		} catch (IllegalArgumentException ex) {
+			log.warn("[TX-DEMO][DIRECT][{}] Tipo invalido: {}", type, ex.getMessage());
+			return ResponseEntity.badRequest().body(ex.getMessage());
+		}
+	}
+
+	@Operation(summary = "Demo propagacion desde otro servicio", description = "PurchaseServiceImpl abre una transaccion padre REQUIRED y luego invoca SupplierService. NEVER responde HTTP 400 con IllegalTransactionStateException.")
+	@GetMapping("/tx-demo/from-service/{type}")
+	public ResponseEntity<String> txDemoFromService(@PathVariable String type) {
+		try {
+			purchaseService.executePropagationFromPurchaseService(type);
+			return ResponseEntity.ok("OK: propagacion " + type.toUpperCase()
+					+ " ejecutada desde PurchaseServiceImpl. Revisar la consola con el prefijo [TX-DEMO].");
+		} catch (IllegalTransactionStateException ex) {
+			log.error("[TX-DEMO][FROM-SERVICE][{}] Error esperado: {}", type, ex.getMessage(), ex);
+			return ResponseEntity.badRequest()
+					.body("Error de propagacion " + type.toUpperCase() + ": " + ex.getMessage());
+		} catch (IllegalArgumentException ex) {
+			log.warn("[TX-DEMO][FROM-SERVICE][{}] Tipo invalido: {}", type, ex.getMessage());
+			return ResponseEntity.badRequest().body(ex.getMessage());
+		}
+	}
+
+	// ===== Fin demo temporal =====
 }

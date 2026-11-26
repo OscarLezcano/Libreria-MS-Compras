@@ -16,7 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 @Slf4j
@@ -97,6 +99,59 @@ public class SupplierServiceImpl extends BaseService<Supplier, SupplierRepositor
 	private Supplier requireById(Long id) {
 		return findById(id).orElseThrow(() -> NotFoundException.byId(ResourceType.SUPPLIER, id));
 	}
+
+	// ===== Demo temporal de propagaciones transaccionales =====
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void testRequired() {
+		logTxStatus("REQUIRED");
+		getRepository().count();
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void testRequiresNew() {
+		logTxStatus("REQUIRES_NEW");
+		getRepository().count();
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.SUPPORTS)
+	public void testSupports() {
+		logTxStatus("SUPPORTS");
+		getRepository().count();
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	public void testNotSupported() {
+		logTxStatus("NOT_SUPPORTED");
+		getRepository().count();
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void testMandatory() {
+		logTxStatus("MANDATORY");
+		getRepository().count();
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.NEVER)
+	public void testNever() {
+		logTxStatus("NEVER");
+		getRepository().count();
+	}
+
+	private void logTxStatus(String propagationName) {
+		boolean active = TransactionSynchronizationManager.isActualTransactionActive();
+		String transactionName = TransactionSynchronizationManager.getCurrentTransactionName();
+		log.info("[TX-DEMO][{}] isActualTransactionActive={}, currentTransactionName={}", propagationName, active,
+				transactionName);
+	}
+
+	// ===== Fin demo temporal =====
 
 	private String normalizeName(String name) {
 		return name != null ? name.trim() : null;
